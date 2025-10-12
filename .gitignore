@@ -21,7 +21,7 @@
 *.ppt
 *.pptx
 
-.HDF
+*.HDF
 
 # 忽略某些文件夹（例如 output 和 temp）
 output/
