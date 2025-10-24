@@ -1,3 +1,6 @@
+# Mac必须忽略.DS_Store
+.DS_Store
+
 # 忽略所有图片文件
 *.png
 *.jpg
@@ -24,5 +27,7 @@
 *.HDF
 
 # 忽略某些文件夹（例如 output 和 temp）
+# 忽略idea的配置文件目录
 output/
 temp/
+.idea/
