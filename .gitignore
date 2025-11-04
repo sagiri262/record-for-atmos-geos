@@ -1,11 +1,13 @@
 # Mac必须忽略.DS_Store
 .DS_Store
 
-# 忽略所有图片文件
-*.png
-*.jpg
-*.jpeg
-*.gif
+# 忽略大文件
+*.grib
+
+# 忽略部分图片文件
+*.tif
+*.tiff
+*.geotiff
 *.bmp
 *.svg
 
@@ -14,6 +16,11 @@
 *.rar
 *.7z
 *.tar.gz
+*.tar
+*.gz
+
+# 忽略部分地理数据
+*.shp
 
 # 忽略所有文档文件
 *.pdf
