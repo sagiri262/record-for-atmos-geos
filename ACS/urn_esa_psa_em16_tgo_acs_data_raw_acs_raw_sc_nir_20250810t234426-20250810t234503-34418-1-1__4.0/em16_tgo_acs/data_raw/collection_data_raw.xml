@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PDS4 XML product label for PDS4 V1.15.0.0  Fri Jan 21 14:02:05 CET 2022 -->
+<!-- Generated from the PDS4 Information Model V1.15.0.0 - System Build 11a -->
+<!-- *** This PDS4 XML product label is an operational deliverable. *** -->
+<?xml-model href="https://pds.nasa.gov/pds4/pds/v1/PDS4_PDS_1L00.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<Product_Collection 
+	xmlns="http://pds.nasa.gov/pds4/pds/v1" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation="http://pds.nasa.gov/pds4/pds/v1 https://pds.nasa.gov/pds4/pds/v1/PDS4_PDS_1L00.xsd">
+
+	<Identification_Area>
+		<logical_identifier>urn:esa:psa:em16_tgo_acs:data_raw</logical_identifier>
+		<version_id>1.0</version_id>
+		<title>ExoMars 2016 ACS Raw-level Data Product Collection</title>
+		<information_model_version>1.21.0.0</information_model_version>
+		<product_class>Product_Collection</product_class>
+		<Citation_Information>
+			<author_list>Oleg Korablev</author_list>
+			<publication_year>2018</publication_year>
+			<description>ExoMars TGO ACS Instrument</description>
+		</Citation_Information>
+
+		<Modification_History>
+			<Modification_Detail>
+				<modification_date>2025-08-11</modification_date>
+				<version_id>1.0</version_id>
+				<description>Collection file automatically created by the PSA PDS4 Delivery Packager</description>
+			</Modification_Detail>
+		</Modification_History>
+
+	</Identification_Area>
+
+	<Context_Area>
+		<Time_Coordinates>
+			<start_date_time>2016-03-05T00:00:00Z</start_date_time>
+			<stop_date_time>2030-12-31T23:59:59Z</stop_date_time>
+		</Time_Coordinates>
+		<Primary_Result_Summary>
+			<purpose>Science</purpose>
+			<processing_level>Raw</processing_level>
+			<description>Raw Data Collection</description>
+			<Science_Facets>
+				<wavelength_range>Infrared</wavelength_range>
+				<domain>Atmosphere</domain>
+				<discipline_name>Spectroscopy</discipline_name>
+			</Science_Facets>
+		</Primary_Result_Summary>
+		
+		<!-- Mission -->
+		<Investigation_Area>
+			<name>ExoMars 2016</name>
+			<type>Mission</type>
+			<Internal_Reference>
+				<lid_reference>urn:esa:psa:context:investigation:mission.em16</lid_reference>
+				<reference_type>collection_to_investigation</reference_type>
+			</Internal_Reference>
+		</Investigation_Area>
+		
+		<Observing_System>
+			<name>ExoMars 2016 ACS</name>
+			
+			<!-- Instrument Host -->
+			<Observing_System_Component>
+				<name>TGO</name>
+				<type>Host</type>
+				<Internal_Reference>
+					<lid_reference>urn:esa:psa:context:instrument_host:spacecraft.tgo</lid_reference>
+					<reference_type>is_instrument_host</reference_type>
+				</Internal_Reference>
+			</Observing_System_Component>
+			
+			<!-- Instrument -->
+			<Observing_System_Component>
+				<name>ACS</name>
+				<type>Instrument</type>
+				<description>Instrument ACS</description>
+				<Internal_Reference>
+					<lid_reference>urn:esa:psa:context:instrument:tgo.acs</lid_reference>
+					<reference_type>is_instrument</reference_type>
+				</Internal_Reference>
+			</Observing_System_Component>
+			
+		</Observing_System>
+		
+		<Target_Identification>
+			<name>MARS</name>
+			<type>Planet</type>
+			<description>Planet Mars</description>
+			<Internal_Reference>
+				<lid_reference>urn:nasa:pds:context:target:planet.mars</lid_reference>
+				<reference_type>data_to_target</reference_type>
+			</Internal_Reference>
+		</Target_Identification>
+		
+	</Context_Area>
+	
+	<Reference_List>
+		<External_Reference>
+			<doi>10.57780/esa-yy83w6t</doi>
+			<reference_text>ExoMars 2016 ACS Raw-level Data Product Collection</reference_text>
+		</External_Reference>
+	</Reference_List>
+	
+	<Collection>
+		<collection_type>Data</collection_type>
+		<description>
+			ACS
+			===
+			
+			The Atmospheric Chemistry Suite (ACS) instrument is an element of the Russian contribution to the 
+			ESA/Roscosmos ExoMars 2016 Trace Gas Orbiter (TGO) mission. The instrument hardware was built in 
+			the Space Research Institute of the Russian Academy of Sciences (IKI) with international collaborations of 
+			LATMOS (CNRS) in France, the German Institut für Planetenforschung (DLR) and the Institute of Physics 
+			of interplanetary Space (IFSI) in Italy. 
+			
+			ACS consists of three separate infrared channels, sharing common mechanical, electrical, 
+			and thermal interfaces: NIR (0.73 to 1.6 μm), MIR (2.3 to 4.3 μm) and TIRVIM (or TIR, 1.7 to 17 μm). 			
+			Measurements are carried out in solar occultation mode for all channels, and in nadir mode for NIR and TIRVIM.
+			Note that TIRVIM was working in science mode up to December 3rd, 2019.
+			
+			This ensemble of spectrometers has been designed and developed in response to the TGO objectives that specifically 
+			address the requirement of high sensitivity instruments to enable the unambiguous detection of trace gases of 
+			potential geophysical or biological interest.
+						
+			The Principal Investigator is Oleg Korablev, Space Research Institute (IKI), Russian Academy of Sciences.
+			
+			The data_raw collection
+			=======================
+			
+			The raw data collection contains the raw science and housekeeping data from the instrument and the data is released 
+			publicly on a daily basis with a six month lag from the data being obtained. 
+				
+			Physically the collection is organised by science phase, then orbit range in groups of 100 orbits, then orbit. 
+			
+			A description of the raw data products is given in the ACS Experiment to Archive Interface Control Document (EAICD), available  
+			under the Documents tab in the PSA user interface or via the Document Collection on the PSA 
+			ftp page (http://archives.esac.esa.int/psa/ftp/ExoMars2016/em16_tgo_acs/document). 
+			
+			A quick start guide can also be found at: https://issues.cosmos.esa.int/socciwiki/display/PSAPUB1/ACS+Quick+Start+Guide. 
+		</description>
+	</Collection>
+
+	<File_Area_Inventory>
+		<File>
+			<file_name>collection_data_raw.csv</file_name>
+			<records>273171</records>
+		</File>
+		<Inventory>
+			<offset unit="byte">0</offset>
+			<parsing_standard_id>PDS DSV 1</parsing_standard_id>
+			<records>273171</records>
+			<record_delimiter>Carriage-Return Line-Feed</record_delimiter>
+			<field_delimiter>Comma</field_delimiter>
+
+			<Record_Delimited>
+				<fields>2</fields>
+				<groups>0</groups>
+				<maximum_record_length unit="byte">259
+				</maximum_record_length>
+
+				<Field_Delimited>
+					<name>Member Status</name>
+					<field_number>1</field_number>
+					<data_type>ASCII_String</data_type>
+					<maximum_field_length unit="byte">1</maximum_field_length>
+					<description>
+						This columns specifies the status type of the files that
+						comprise the collection.
+					</description>
+				</Field_Delimited>
+				<Field_Delimited>
+					<name>LIDVID_LID</name>
+					<field_number>2</field_number>
+					<data_type>ASCII_LIDVID_LID</data_type>
+					<maximum_field_length unit="byte">255</maximum_field_length>
+					<description>
+						This columns specifies the LIDVID of the files that
+						comprise the collection.
+					</description>
+				</Field_Delimited>
+			</Record_Delimited>
+
+			<reference_type>inventory_has_member_product</reference_type>
+
+		</Inventory>
+	</File_Area_Inventory>
+</Product_Collection>

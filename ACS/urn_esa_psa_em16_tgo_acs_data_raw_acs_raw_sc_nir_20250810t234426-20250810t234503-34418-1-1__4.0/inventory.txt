@@ -1,0 +1,10 @@
+em16_tgo_acs/bundle_em16_tgo_acs.xml
+em16_tgo_acs/data_raw/Science_Phase/Orbit_Range_34400_34499/Orbit_34418/acs_raw_sc_nir_20250810T234426-20250810T234503-34418-1-1-AA__4_0.tab
+em16_tgo_acs/data_raw/Science_Phase/Orbit_Range_34400_34499/Orbit_34418/acs_raw_sc_nir_20250810T234426-20250810T234503-34418-1-1-EA__4_0.tab
+em16_tgo_acs/data_raw/Science_Phase/Orbit_Range_34400_34499/Orbit_34418/acs_raw_sc_nir_20250810T234426-20250810T234503-34418-1-1-EB__4_0.tab
+em16_tgo_acs/data_raw/Science_Phase/Orbit_Range_34400_34499/Orbit_34418/acs_raw_sc_nir_20250810T234426-20250810T234503-34418-1-1-EC__4_0.tab
+em16_tgo_acs/data_raw/Science_Phase/Orbit_Range_34400_34499/Orbit_34418/acs_raw_sc_nir_20250810T234426-20250810T234503-34418-1-1-ED__4_0.tab
+em16_tgo_acs/data_raw/Science_Phase/Orbit_Range_34400_34499/Orbit_34418/acs_raw_sc_nir_20250810T234426-20250810T234503-34418-1-1__4_0.xml
+em16_tgo_acs/data_raw/collection_data_raw.csv
+em16_tgo_acs/data_raw/collection_data_raw.xml
+em16_tgo_acs/readme_em16_tgo_acs.txt
