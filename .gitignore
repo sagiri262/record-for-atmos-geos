@@ -1,1 +1,9 @@
 .DS_Store
+
+*.fits
+*.fits.gz
+*.zip
+*.gz
+*.tar
+*.tar.gz
+*.gz.tar
