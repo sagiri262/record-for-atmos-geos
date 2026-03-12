@@ -2,7 +2,7 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import cartopy.crs as crs
 import glob
-
+import cartopy.feature as cfeature
 from wrf_read_data import WRFDataReader
 from netCDF4 import Dataset
 from cartopy.feature import NaturalEarthFeature
@@ -41,7 +41,10 @@ wrf_files_dir = root /
 # =========================
 # 1. 用读取模块统一管理文件
 # =========================
-wrf_path = "/home/zy/WRF/WRFV4.6.0/test/em_real/wrfout_d01_*"
+# wrf_path = "/home/zy/WRF/WRFV4.6.0/test/em_real/wrfout_d01_*"
+
+wrf_path = "/Volumes/Lexar/WRF_Data/wrfout_d01_*"
+
 reader = WRFDataReader(wrf_path)
 
 # 获取排序后的文件列表
@@ -68,14 +71,13 @@ cart_proj = get_cartopy(slp)
 fig = plt.figure(figsize=(12, 6))
 ax = plt.axes(projection=cart_proj)
 
-states = NaturalEarthFeature(
-    category="cultural",
-    scale="50m",
-    facecolor="none",
-    name="admin_1_states_provinces_shp"
-)
-ax.add_feature(states, linewidth=0.5, edgecolor="black")
-ax.coastlines("50m", linewidth=0.8)
+try:
+    ax.add_feature(cfeature.STATES.with_scale('50m'), linewidth=0.5, edgecolor="black")
+except Exception:
+    pass
+
+# ax.add_feature(states, linewidth=0.5, edgecolor="black")
+ax.coastlines(resolution="50m", linewidth=0.8)
 
 contours = plt.contour(
     to_np(lons), to_np(lats), to_np(smooth_slp),
@@ -84,7 +86,8 @@ contours = plt.contour(
 
 filled = plt.contourf(
     to_np(lons), to_np(lats), to_np(smooth_slp),
-    10, transform=crs.PlateCarree(), cmap=get_cmap("jet")
+    10, transform=crs.PlateCarree(), cmap="jet"
+    # get_map 方法已被弃用
 )
 
 plt.colorbar(filled, ax=ax, shrink=0.98, label="Sea Level Pressure (hPa)")
@@ -103,10 +106,3 @@ plt.show()
 
 ncfile.close()
 reader.close()
-
-
-
-
-
-
-
