@@ -1,5 +1,7 @@
 import glob
+import os
 import xarray as xr
+from netCDF4 import Dataset
 from pathlib import Path
 from typing import List, Union, Optional
 
@@ -22,32 +24,48 @@ class WRFDataReader:
 
         self.files = self._resolve_files(paths)
         self.ds = None
+        self.datasets = []
 
 
-    def _resolve_files(self, paths: Union[str, List[str]]) -> List[str]:
-        '''
-        解析输入路径
-        - 如果是字符串，展开为文件列表
-        - 如果是路径中只有一个文件，直接使用
-        - 如果是列表，排序后使用
-        '''
-        if isinstance(paths, str):
-            if any(ch in paths for ch in ["*", "?", "["]):
-                files = sorted(glob.glob(paths))
-            else:
-                p = Path(paths)
-                if not p.exists():
-                    raise FileNotFoundError(f"文件不存在")
-                files = [str[p]]
-        elif isinstance():
-            files = sorted([str(Path(p)) for p in paths])
+    def _resolve_files(self, paths):
+        """
+        支持：
+        1. 单个文件路径
+        2. 带通配符的字符串路径
+        3. 路径列表
+        """
+        matched_files = []
+
+        # 单个字符串或 PathLike
+        if isinstance(paths, (str, os.PathLike)):
+            pattern = os.fspath(paths)
+            print(f"[WRFDataReader] 正在解析路径: {pattern}")
+
+            # 直接按原始 pattern 做 glob，不要改写父目录
+            matched_files = sorted(glob.glob(pattern))
+
+        # 列表 / 元组
+        elif isinstance(paths, (list, tuple)):
+            for item in paths:
+                pattern = os.fspath(item)
+                print(f"[WRFDataReader] 正在解析路径: {pattern}")
+                matched_files.extend(sorted(glob.glob(pattern)))
+
         else:
-            raise TypeError("Paths 必须是字符串或字符串列表")
-        
-        if not files:
+            raise TypeError(
+                f"paths 必须是 str、PathLike、list 或 tuple，当前类型为: {type(paths)}"
+            )
+
+        # 去重并保序
+        matched_files = list(dict.fromkeys(matched_files))
+
+        if not matched_files:
             raise FileNotFoundError(f"没有匹配到任何文件：{paths}")
-        
-        return files
+
+        print(f"[WRFDataReader] 共匹配到 {len(matched_files)} 个文件")
+        print(f"[WRFDataReader] 第一个文件: {matched_files[0]}")
+
+        return matched_files
 
 
     def open(self) -> xr.Dataset:
@@ -73,7 +91,7 @@ class WRFDataReader:
                 combine=self.combine,
                 concat_dim=self.concat_dim,
                 parallel=self.parallel,
-            chunks=self.chunks,
+                chunks=self.chunks,
                 decode_times=self.decode_times,
                 decode_cf=self.decode_cf,
             )
@@ -82,12 +100,19 @@ class WRFDataReader:
 
 
     def close(self):
-        if self.ds is not None:
-            self.ds.close()
-            self.ds = None
+        for ds in self.datasets:
+            try:
+                ds.close()
+            except Exception:
+                pass
+        self.datasets = []
 
-    def get_files(self) -> List[str]:
+    def get_files(self):
         return self.files
+    
+    def open_all(self):
+        self.datasets = [Dataset(f) for f in self.files]
+        return self.datasets
 
     def get_dataset(self) -> xr.Dataset:
         return self.open()
