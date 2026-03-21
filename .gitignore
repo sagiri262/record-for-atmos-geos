@@ -9,3 +9,6 @@
 *.gz.tar
 
 *.xml
+MarsWRF/修改configure.wrf.md
+MarsWRF/configure.wrf
+*.pyc

@@ -43,7 +43,7 @@ wrf_files_dir = root /
 # =========================
 # wrf_path = "/home/zy/WRF/WRFV4.6.0/test/em_real/wrfout_d01_*"
 
-wrf_path = "/Volumes/Lexar/WRF_Data/wrfout_d01_*"
+wrf_path = "/Volumes/Lexar/WRF_Data/WRF_second_try/wrfout_d01_*"
 
 reader = WRFDataReader(wrf_path)
 
@@ -101,7 +101,7 @@ gl.top_labels = False
 gl.x_inline = False
 
 plt.title("Sea Level Pressure (hPa)", fontsize=14)
-plt.savefig("slp_map.png", dpi=300, bbox_inches="tight")
+plt.savefig("../FIGS/slp_map.png", dpi=300, bbox_inches="tight")
 plt.show()
 
 ncfile.close()
