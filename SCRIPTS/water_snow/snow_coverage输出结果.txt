@@ -1,0 +1,5 @@
+图已保存: ../FIGS/liquid_precip.png
+图已保存: ../FIGS/frozen_precip.png
+图已保存: ../FIGS/snow_cover_region.png
+图已保存: ../FIGS/snow_depth_distribution.png
+图已保存: ../FIGS/albedo.png
