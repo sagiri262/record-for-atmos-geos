@@ -12,3 +12,8 @@
 MarsWRF/修改configure.wrf.md
 MarsWRF/configure.wrf
 *.pyc
+
+
+*.png
+*.jpg
+*.jpeg
