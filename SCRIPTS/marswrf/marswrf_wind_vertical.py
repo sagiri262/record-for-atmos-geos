@@ -442,8 +442,21 @@ ax1.axvline(x=0, color="gray", lw=0.5, ls="--", zorder=5)
  
 # 地形填充
 topo_alt = np.interp(lat_1d, dem_lat, dem_alt)
-ax1.fill_between(lat_1d, -5, topo_alt,
-                 color="#AAAAAA", zorder=3, alpha=0.9)
+
+# 只对有效的 DEM 采样点绘图
+valid_topo = np.isfinite(topo_alt)
+
+terrain_base = -5.0
+
+# 填充地形色
+ax1.fill_between(
+    lat_1d, terrain_base, topo_alt, where=valid_topo,
+    color="#AAAAAA", alpha=1, zorder=3
+)
+
+# 绘图
+ax1.plot(lat_1d, topo_alt,
+         color="black", linewidth=0.8, zorder=4)
 
 
 # 坐标轴
@@ -520,9 +533,23 @@ for plev, alt_lev in zip(PLEVS_PA, plev_alts):
 # ── 6.4 赤道垂直虚线
 ax2.axvline(x=0, color="gray", lw=0.5, ls="--", zorder=5)
  
-# ── 6.5 地形填充
-ax2.fill_between(lat_1d, -5, topo_alt,
-                 color="#AAAAAA", zorder=3, alpha=0.9)
+# 地形填充
+topo_alt = np.interp(lat_1d, dem_lat, dem_alt)
+
+# 只对有效的 DEM 采样点绘图
+valid_topo = np.isfinite(topo_alt)
+
+terrain_base = -5.0
+
+# 填充地形色
+ax2.fill_between(
+    lat_1d, terrain_base, topo_alt, where=valid_topo,
+    color="#AAAAAA", alpha=1, zorder=3
+)
+
+# 绘图
+ax2.plot(lat_1d, topo_alt,
+         color="black", linewidth=0.8, zorder=4)
  
 # ── 6.6 坐标轴
 ax2.set_xlim(-90, 90)

@@ -48,6 +48,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.colors import BoundaryNorm
+from matplotlib.patches import Polygon
 from netCDF4 import Dataset
 
 warnings.filterwarnings("ignore")
@@ -316,6 +317,74 @@ if dem_lat is None or dem_alt is None:
     dem_lat = lat_1d
     dem_alt = HGT_sec
 
+
+def build_topography_profile(lat_1d, hgt_sec, dem_lat=None, dem_alt=None,
+                             ybase=-5.0, use_wrf_hgt=True):
+    """
+    生成用于绘图/遮罩的地形剖面（单位 km）
+
+    推荐 use_wrf_hgt=True：
+    - 剖面遮罩和填充优先使用 WRF 的 HGT
+    - 避免外部 DEM 与 WRF 垂直基准不一致
+    """
+    if use_wrf_hgt or dem_lat is None or dem_alt is None:
+        topo_km = np.array(hgt_sec, dtype=float).copy()
+    else:
+        # 若强行使用 DEM，则先插值到 WRF 纬度
+        topo_km = np.interp(lat_1d, dem_lat, dem_alt)
+
+        # 用 HGT 做整体平移对齐，减小 DEM/WRF 垂直基准差异
+        valid = np.isfinite(topo_km) & np.isfinite(hgt_sec)
+        if valid.sum() >= 2:
+            offset = np.nanmedian(hgt_sec[valid] - topo_km[valid])
+            topo_km = topo_km + offset
+        else:
+            topo_km = np.array(hgt_sec, dtype=float).copy()
+
+    # 补 NaN，避免 fill_between/多边形断裂
+    nan_mask = ~np.isfinite(topo_km)
+    if nan_mask.any():
+        good = np.where(~nan_mask)[0]
+        if good.size >= 2:
+            topo_km[nan_mask] = np.interp(np.where(nan_mask)[0], good, topo_km[good])
+        elif good.size == 1:
+            topo_km[nan_mask] = topo_km[good[0]]
+        else:
+            topo_km[:] = ybase
+
+    # 不允许低于图框下边界
+    topo_km = np.clip(topo_km, ybase, None)
+    return topo_km
+
+
+def add_terrain_patch(ax, lat_1d, topo_km, ybase=-5.0,
+                      facecolor="#AAAAAA", edgecolor="black",
+                      linewidth=0.8, zorder=10):
+    """
+    手动构造封闭多边形：
+    地形线（左->右）+ 底边（右->左）
+    """
+    poly_x = np.concatenate([lat_1d, lat_1d[::-1]])
+    poly_y = np.concatenate([topo_km, np.full_like(topo_km, ybase)[::-1]])
+
+    patch = Polygon(
+        np.column_stack([poly_x, poly_y]),
+        closed=True,
+        facecolor=facecolor,
+        edgecolor="none",
+        zorder=zorder
+    )
+    ax.add_patch(patch)
+
+    # 单独画地形轮廓线
+    ax.plot(
+        lat_1d, topo_km,
+        color=edgecolor,
+        linewidth=linewidth,
+        zorder=zorder + 0.1
+    )
+
+
 # =========================================================
 # 7. 计算右轴等压线对应高度
 # =========================================================
@@ -377,12 +446,30 @@ Aq = alt_uniform[::skip_alt]
 Vq = V_uni[::skip_alt, ::skip_lat]
 Wq = W_uni[::skip_alt, ::skip_lat] * 50.0
 
+# 地形基准高度
+terrain_base = -5.0
+
+# 推荐：剖面绘图和遮罩优先使用 HGT_sec（WRF 自己坐标系）
+# 如果你以后想试“保留 DEM 形状，但做整体高程对齐”，只要把最后那个参数改成 use_wrf_hgt=False
+topo_plot = build_topography_profile(
+    lat_1d=lat_1d,
+    hgt_sec=HGT_sec,
+    dem_lat=dem_lat,
+    dem_alt=dem_alt,
+    ybase=terrain_base,
+    use_wrf_hgt=True
+)
+
+
 for jj, la in enumerate(Lq):
     j_orig = np.argmin(np.abs(lat_1d - la))
-    hgt_here = (
+    """    
+        hgt_here = (
         dem_alt[np.argmin(np.abs(dem_lat - la))]
         if dem_lat is not None else HGT_sec[j_orig]
     )
+    """
+    hgt_here = topo_plot[j_orig]
     for ii, al in enumerate(Aq):
         if al < hgt_here:
             Vq[ii, jj] = np.nan
@@ -407,11 +494,39 @@ ax1.quiverkey(
 
 ax1.axvline(x=0, color="gray", lw=0.5, ls="--", zorder=5)
 
+
+# 地形填充
 topo_alt = np.interp(lat_1d, dem_lat, dem_alt)
+
+# 只对有效的 DEM 采样点绘图
+valid_topo = np.isfinite(topo_alt)
+
+
+
+
+"""
+# 填充地形色
 ax1.fill_between(
-    lat_1d, -5, topo_alt,
-    color="#AAAAAA", zorder=3, alpha=0.9
+    lat_1d, terrain_base, topo_alt, where=valid_topo,
+    color="#AAAAAA", alpha=1, zorder=10
 )
+
+# 绘图
+ax1.plot(lat_1d, topo_alt,
+         color="black", linewidth=0.8, zorder=10)
+"""
+# 地形封闭填充 + 地形轮廓线
+add_terrain_patch(
+    ax1,
+    lat_1d,
+    topo_plot,
+    ybase=terrain_base,
+    facecolor="#AAAAAA",
+    edgecolor="black",
+    linewidth=0.8,
+    zorder=10
+)
+
 
 ax1.set_xlim(-90, 90)
 ax1.set_ylim(-5, 85)
@@ -485,10 +600,38 @@ for plev, alt_lev in zip(PLEVS_PA, plev_alts):
 
 ax2.axvline(x=0, color="gray", lw=0.5, ls="--", zorder=5)
 
-ax2.fill_between(
-    lat_1d, -5, topo_alt,
-    color="#AAAAAA", zorder=3, alpha=0.9
+
+# 地形封闭填充 + 地形轮廓线
+add_terrain_patch(
+    ax2,
+    lat_1d,
+    topo_plot,
+    ybase=terrain_base,
+    facecolor="#AAAAAA",
+    edgecolor="black",
+    linewidth=0.8,
+    zorder=10
 )
+
+"""
+# 地形填充
+topo_alt = np.interp(lat_1d, dem_lat, dem_alt)
+
+# 只对有效的 DEM 采样点绘图
+valid_topo = np.isfinite(topo_alt)
+
+terrain_base = -5.0
+
+# 填充地形色
+ax2.fill_between(
+    lat_1d, terrain_base, topo_alt, where=valid_topo,
+    color="#AAAAAA", alpha=1, zorder=10
+)
+
+# 绘图
+ax2.plot(lat_1d, topo_alt,
+         color="black", linewidth=0.8, zorder=10)
+"""
 
 ax2.set_xlim(-90, 90)
 ax2.set_ylim(-5, 85)
