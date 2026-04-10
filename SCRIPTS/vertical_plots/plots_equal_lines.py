@@ -60,7 +60,7 @@ from wrf_read_data import WRFDataReader
 # =========================================================
 # 1. 参数设置
 # =========================================================
-wrf_path = "/Volumes/Lexar/WRF_Data/WRF_second_try/wrfout_d01_*"
+wrf_path = "../../../WRFV4.6.0/test/em_real/wrfout_d01_*"
 reader = WRFDataReader(wrf_path)
 
 # 获取排序后的文件列表

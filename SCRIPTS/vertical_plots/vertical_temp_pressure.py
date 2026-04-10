@@ -32,7 +32,7 @@ from wrf_read_data import WRFDataReader
 # =========================================================
 # 1. 参数设置
 # =========================================================
-wrf_path = "/Volumes/Lexar/WRF_Data/WRF_second_try/wrfout_d01_*"
+wrf_path = "../../../WRF_result/era_test/wrfout_d01_*"
 
 start_time = datetime.strptime("2022-11-28_00:00:00", "%Y-%m-%d_%H:%M:%S")
 end_time   = datetime.strptime("2022-12-02_21:00:00", "%Y-%m-%d_%H:%M:%S")
@@ -101,21 +101,32 @@ for f in selected_files:
 nc0 = Dataset(selected_files[0])
 
 ter0 = getvar(nc0, "ter", timeidx=0)
+z0 = getvar(nc0, "z", timeidx=0)
 lats0, lons0 = latlon_coords(ter0)
 
 lats0 = to_np(lats0)
 lons0 = to_np(lons0)
 
+# 与实际计算变量保持一致的网格范围（mass grid）
+ny0, nx0 = z0.shape[-2], z0.shape[-1]
+lats0 = lats0[:ny0, :nx0]
+lons0 = lons0[:ny0, :nx0]
+
 # 找最接近 120E 的列
 dist = np.abs(lons0 - target_lon)
 j0, i0 = np.unravel_index(np.argmin(dist), dist.shape)
 
-section_lon = float(np.nanmean(lons0[:, i0]))
-lat_min = float(np.nanmin(lats0[:, i0]))
-lat_max = float(np.nanmax(lats0[:, i0]))
+# 直接使用网格坐标端点，避免投影反算导致端点越界
+ny, nx = lats0.shape
+j_min = 0
+j_max = ny - 1
+start_point = CoordPair(x=int(i0), y=int(j_min))
+end_point   = CoordPair(x=int(i0), y=int(j_max))
 
-start_point = CoordPair(lat=lat_min, lon=section_lon)
-end_point   = CoordPair(lat=lat_max, lon=section_lon)
+# 仅用于显示的剖面经线（近似）
+section_lon = float(np.nanmean(lons0[:, i0]))
+lat_min = float(lats0[j_min, i0])
+lat_max = float(lats0[j_max, i0])
 
 print(f"实际剖面经线: {section_lon:.3f}E")
 print(f"纬度范围: {lat_min:.3f} ~ {lat_max:.3f}")
@@ -154,7 +165,7 @@ for wrf_file in selected_files:
         wrfin=nc,
         start_point=start_point,
         end_point=end_point,
-        latlon=True,
+        latlon=False,
         meta=True,
         levels=z_levels
     )
@@ -164,7 +175,7 @@ for wrf_file in selected_files:
         wrfin=nc,
         start_point=start_point,
         end_point=end_point,
-        latlon=True,
+        latlon=False,
         meta=True,
         levels=z_levels
     )
@@ -174,7 +185,7 @@ for wrf_file in selected_files:
         wrfin=nc,
         start_point=start_point,
         end_point=end_point,
-        latlon=True,
+        latlon=False,
         meta=True,
         levels=z_levels
     )
@@ -191,8 +202,7 @@ for wrf_file in selected_files:
 
     # 横轴纬度只取一次
     if lat_vals is None:
-        xy_locs = to_np(theta_cross.coords["xy_loc"])
-        lat_vals = np.array([pt.lat for pt in xy_locs])
+        lat_vals = np.asarray(lats0[:, i0], dtype=float)
 
     # 转数组
     temp2d = np.asarray(to_np(temp_cross), dtype=float)
