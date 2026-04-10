@@ -50,6 +50,8 @@ import numpy as np
 from matplotlib.colors import BoundaryNorm
 from matplotlib.patches import Polygon
 from netCDF4 import Dataset
+# 加入色柱
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 warnings.filterwarnings("ignore")
 
@@ -136,7 +138,7 @@ args = parser.parse_args(normalize_legacy_args(sys.argv[1:]))
 g_mars = 3.72          # 火星重力加速度 m/s²
 R_cp = 0.2857          # R/Cp
 P_ref = 610.0          # 参考气压 Pa
-T00 = 240.0            # WRF T00，若文件中有全局属性则覆盖
+T00 = 300.0            # WRF T00，若文件中有全局属性则覆盖
 
 PLEVS_PA = np.array([610, 400, 200, 100, 50, 10, 5, 1, 0.1], dtype=float)
 ALT_TICKS = [-5, 5, 15, 25, 35, 45, 55, 65, 75, 85]  # km
@@ -162,7 +164,7 @@ for fpath in files:
     print(f"[INFO] 读取: {os.path.basename(fpath)}")
     with Dataset(fpath, "r") as ds:
         if hasattr(ds, "T00"):
-            T00 = float(ds.T00)
+            T00 = 300.0
 
         if XLAT_arr is None:
             XLAT_arr = ds.variables["XLAT"][0, :, :]
@@ -394,14 +396,14 @@ z_col_mid = alt_uniform
 
 plev_alts = []
 for plev in PLEVS_PA:
-    valid = np.isfinite(p_col_mid)
+    valid = np.isfinite(p_col_mid) & (p_col_mid > 0)
     if valid.sum() < 3:
         plev_alts.append(np.nan)
         continue
 
     logP_v = np.log(p_col_mid[valid])
     z_v = z_col_mid[valid]
-    sort_i = np.argsort(logP_v)[::-1]
+    sort_i = np.argsort(logP_v)  # np.interp 要求 x 轴单调递增
 
     alt_v = np.interp(
         np.log(plev),
@@ -414,6 +416,27 @@ for plev in PLEVS_PA:
 
 plev_alts = np.array(plev_alts)
 print(f"[INFO] 等压线高度对应：{list(zip(PLEVS_PA, np.round(plev_alts, 1)))}")
+
+
+# 加入纵坐标的线
+def add_pressure_axis(ax, plevs_pa, plev_alts, y_min=-5, y_max=85):
+    """
+    在右侧添加压力坐标轴（Pa）
+    """
+    ax_r = ax.twinx()
+    ax_r.set_ylim(y_min, y_max)
+
+    valid = np.isfinite(plev_alts) & (plev_alts >= y_min) & (plev_alts <= y_max)
+
+    ax_r.set_yticks(plev_alts[valid])
+    ax_r.set_yticklabels(
+        [f"{int(p) if p >= 1 else p}" for p in plevs_pa[valid]],
+        fontsize=7
+    )
+    ax_r.tick_params(direction="in", which="both")
+    ax_r.set_ylabel("Pressure (Pa)", fontsize=9, labelpad=8)
+    return ax_r
+
 
 # =========================================================
 # 8. 图一：风场剖面
@@ -502,8 +525,6 @@ topo_alt = np.interp(lat_1d, dem_lat, dem_alt)
 valid_topo = np.isfinite(topo_alt)
 
 
-
-
 """
 # 填充地形色
 ax1.fill_between(
@@ -538,6 +559,7 @@ ax1.tick_params(direction="in", which="both", top=True, right=False)
 ax1.xaxis.set_minor_locator(mticker.MultipleLocator(5))
 ax1.yaxis.set_minor_locator(mticker.MultipleLocator(5))
 
+"""
 ax1_r = ax1.twinx()
 ax1_r.set_ylim(-5, 85)
 ax1_r.set_yticks([a for a in plev_alts if np.isfinite(a) and -5 <= a <= 85])
@@ -551,6 +573,10 @@ ax1_r.set_yticklabels(
 )
 ax1_r.tick_params(direction="in", which="both")
 ax1_r.set_ylabel("Pressure (Pa)", fontsize=9, labelpad=8)
+"""
+
+# 右侧气压轴改成调用函数
+add_pressure_axis(ax1, PLEVS_PA, plev_alts, y_min=-5, y_max=85)
 
 lon_label = f"D01 ({args.sol_label}, LST:{args.lst_label})"
 ax1.set_title("V, W*50 (m/s)", loc="left", fontsize=9, fontweight="bold")
@@ -566,42 +592,90 @@ plt.close()
 # =========================================================
 print("\n[INFO] 绘制图二（温度剖面）...")
 
-T_plot_min = np.floor(np.nanmin(T_uni) / 8) * 8
-T_plot_max = np.ceil(np.nanmax(T_uni) / 8) * 8
+# -----------------------------
+# 1) 温度范围
+# -----------------------------
+T_plot_min = np.floor(np.nanmin(T_uni))
+T_plot_max = np.ceil(np.nanmax(T_uni))
 T_plot_min = max(T_plot_min, 108)
 T_plot_max = min(T_plot_max, 268)
-levels_T = np.arange(T_plot_min, T_plot_max + 1, 8)
-n_levs = len(levels_T) - 1
 
-cmap_T = plt.get_cmap("RdBu_r", n_levs)
-norm_T = BoundaryNorm(levels_T, ncolors=n_levs, clip=False)
+# -----------------------------
+# 2) 分级设置
+#    填色：1 K
+#    等温线：2 K
+#    标注：8 K
+# -----------------------------
+levels_T_fill = np.arange(T_plot_min, T_plot_max + 1, 1)
+levels_T_line = np.arange(
+    np.floor(T_plot_min / 2) * 2,
+    np.ceil(T_plot_max / 2) * 2 + 1,
+    2
+)
+levels_T_label = np.arange(
+    np.floor(T_plot_min / 8) * 8,
+    np.ceil(T_plot_max / 8) * 8 + 1,
+    8
+)
+levels_T_label_used = np.intersect1d(levels_T_line, levels_T_label)
+
+n_fill = len(levels_T_fill) - 1
+
+# 1 K 一档离散色带
+cmap_T = plt.get_cmap("RdBu_r", n_fill)
+norm_T = BoundaryNorm(levels_T_fill, ncolors=n_fill, clip=True)
 
 fig2, ax2 = plt.subplots(figsize=(8, 6), dpi=150)
 
+# -----------------------------
+# 3) 填色：1 K 一档
+# -----------------------------
 cf2 = ax2.contourf(
     lat_1d, alt_uniform, T_uni,
-    levels=levels_T, cmap=cmap_T, norm=norm_T,
-    extend="both"
+    levels=levels_T_fill,
+    cmap=cmap_T,
+    norm=norm_T,
+    extend="neither"
 )
 
+# -----------------------------
+# 4) 等温线：2 K 一条
+# -----------------------------
 cs2 = ax2.contour(
     lat_1d, alt_uniform, T_uni,
-    levels=levels_T, colors="black", linewidths=0.6,
+    levels=levels_T_line,
+    colors="black",
+    linewidths=0.45,
     linestyles="-"
 )
+
+# -----------------------------
+# 5) 只标注 8 K 的线
+# -----------------------------
 ax2.clabel(
-    cs2, fmt="%d", fontsize=6.5, inline=True,
-    inline_spacing=2, use_clabeltext=True
+    cs2,
+    levels=levels_T_label_used,
+    fmt="%d",
+    fontsize=6.5,
+    inline=True,
+    inline_spacing=2,
+    use_clabeltext=True
 )
 
+# -----------------------------
+# 6) 等压线
+# -----------------------------
 for plev, alt_lev in zip(PLEVS_PA, plev_alts):
     if np.isfinite(alt_lev) and -5 <= alt_lev <= 85:
         ax2.axhline(alt_lev, color="gray", lw=0.3, ls="-", zorder=2)
 
+# 赤道虚线
 ax2.axvline(x=0, color="gray", lw=0.5, ls="--", zorder=5)
 
-
-# 地形封闭填充 + 地形轮廓线
+# -----------------------------
+# 7) 地形封闭填充 + 轮廓线
+#    这里沿用你前面已经定义好的函数
+# -----------------------------
 add_terrain_patch(
     ax2,
     lat_1d,
@@ -613,26 +687,9 @@ add_terrain_patch(
     zorder=10
 )
 
-"""
-# 地形填充
-topo_alt = np.interp(lat_1d, dem_lat, dem_alt)
-
-# 只对有效的 DEM 采样点绘图
-valid_topo = np.isfinite(topo_alt)
-
-terrain_base = -5.0
-
-# 填充地形色
-ax2.fill_between(
-    lat_1d, terrain_base, topo_alt, where=valid_topo,
-    color="#AAAAAA", alpha=1, zorder=10
-)
-
-# 绘图
-ax2.plot(lat_1d, topo_alt,
-         color="black", linewidth=0.8, zorder=10)
-"""
-
+# -----------------------------
+# 8) 坐标轴
+# -----------------------------
 ax2.set_xlim(-90, 90)
 ax2.set_ylim(-5, 85)
 ax2.set_xticks(np.arange(-75, 76, 15))
@@ -643,38 +700,51 @@ ax2.tick_params(direction="in", which="both", top=True, right=False)
 ax2.xaxis.set_minor_locator(mticker.MultipleLocator(5))
 ax2.yaxis.set_minor_locator(mticker.MultipleLocator(5))
 
-ax2_r = ax2.twinx()
-ax2_r.set_ylim(-5, 85)
-ax2_r.set_yticks([a for a in plev_alts if np.isfinite(a) and -5 <= a <= 85])
-ax2_r.set_yticklabels(
-    [
-        f"{int(p) if p >= 1 else p}"
-        for p, a in zip(PLEVS_PA, plev_alts)
-        if np.isfinite(a) and -5 <= a <= 85
-    ],
-    fontsize=7
-)
-ax2_r.tick_params(direction="in", which="both")
-ax2_r.set_ylabel("Pressure (Pa)", fontsize=9, labelpad=8)
+# 右侧气压轴
+add_pressure_axis(ax2, PLEVS_PA, plev_alts, y_min=-5, y_max=85)
 
+# -----------------------------
+# 9) Tmax / Tmin
+# -----------------------------
 T_max_val = np.nanmax(T_uni)
 T_min_val = np.nanmin(T_uni)
 
+# -----------------------------
+# 10) Colorbar
+#     颜色内部是 1 K 分级，但刻度文字保持稀一些
+# -----------------------------
 cbar_ax = fig2.add_axes([0.15, -0.06, 0.70, 0.030])
-cb2 = fig2.colorbar(
-    cf2, cax=cbar_ax, orientation="horizontal",
-    ticks=levels_T[::2]
+
+cb_ticks = np.arange(
+    np.ceil(T_plot_min / 20) * 20,
+    np.floor(T_plot_max / 20) * 20 + 1,
+    20
 )
+
+cb2 = fig2.colorbar(
+    cf2,
+    cax=cbar_ax,
+    orientation="horizontal",
+    ticks=cb_ticks,
+    spacing="proportional",
+    drawedges=False
+)
+
 cb2.set_label("(K)", fontsize=9, labelpad=2)
 cb2.ax.tick_params(labelsize=7, direction="in")
 
+# -----------------------------
+# 11) 标题
+# -----------------------------
 ax2.set_title("Temperature (K)", loc="left", fontsize=9, fontweight="bold")
 ax2.set_title(f"D01 ({args.sol_label}, LST:{args.lst_label})", loc="right", fontsize=8)
 ax2.text(
     0.01, 0.97,
     f"Tmax:{T_max_val:.2f}, Tmin:{T_min_val:.2f}",
-    transform=ax2.transAxes, fontsize=7.5,
-    va="top", ha="left"
+    transform=ax2.transAxes,
+    fontsize=7.5,
+    va="top",
+    ha="left"
 )
 
 plt.savefig(args.out2, bbox_inches="tight", dpi=150)
