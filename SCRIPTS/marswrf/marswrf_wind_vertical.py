@@ -19,7 +19,7 @@ DEM 数据：Mars_MGS_MOLA_DEM_mosaic_global_463m.tif
   → 用 rasterio 读取，沿 110°E 取剖面
  
 使用方法：
-python marswrf_section_python.py \
+python marswrf_wind_vertical.py \
   --file "wrfout_d01_*" \
   --dem Mars_MGS_MOLA_DEM_mosaic_global_463m.tif \
   --lon_ref 110 \
@@ -422,7 +422,7 @@ for jj, la in enumerate(Lq):
 
 Lgrid, Agrid = np.meshgrid(Lq, Aq)
 # 合成风速
-speed = np.sqrt(Vq ** 2 + wq ** 2)
+speed = np.sqrt(Vq ** 2 + Wq ** 2)
 
 
 q = ax1.quiver(Lgrid, Agrid, Vq, Wq,

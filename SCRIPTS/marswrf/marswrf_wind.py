@@ -42,6 +42,7 @@ import glob
 import os
 import sys
 import warnings
+from pathlib import Path
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -129,8 +130,35 @@ parser.add_argument(
 
 parser.add_argument("--out1", default="fig1_wind_section.png")
 parser.add_argument("--out2", default="fig2_temp_section.png")
+parser.add_argument(
+    "--out_dir",
+    default=".",
+    help="图片输出目录（会自动创建）"
+)
+parser.add_argument(
+    "--fig1_name",
+    default=None,
+    help="图一文件名（仅文件名，不含路径），默认沿用 --out1 的文件名部分"
+)
+parser.add_argument(
+    "--fig2_name",
+    default=None,
+    help="图二文件名（仅文件名，不含路径），默认沿用 --out2 的文件名部分"
+)
 
 args = parser.parse_args(normalize_legacy_args(sys.argv[1:]))
+
+# 统一输出路径：
+# - 支持自定义输出目录（--out_dir）
+# - 支持自定义文件名（--fig1_name/--fig2_name）
+out_dir = Path(args.out_dir).expanduser()
+out_dir.mkdir(parents=True, exist_ok=True)
+
+fig1_name = args.fig1_name if args.fig1_name else Path(args.out1).name
+fig2_name = args.fig2_name if args.fig2_name else Path(args.out2).name
+
+out1_path = out_dir / fig1_name
+out2_path = out_dir / fig2_name
 
 # =========================================================
 # 2. 常数
@@ -583,8 +611,8 @@ ax1.set_title("V, W*50 (m/s)", loc="left", fontsize=9, fontweight="bold")
 ax1.set_title(lon_label, loc="right", fontsize=8)
 
 plt.tight_layout()
-plt.savefig(args.out1, bbox_inches="tight", dpi=150)
-print(f"[INFO] 图一已保存：{args.out1}")
+plt.savefig(out1_path, bbox_inches="tight", dpi=150)
+print(f"[INFO] 图一已保存：{out1_path}")
 plt.close()
 
 # =========================================================
@@ -747,8 +775,8 @@ ax2.text(
     ha="left"
 )
 
-plt.savefig(args.out2, bbox_inches="tight", dpi=150)
-print(f"[INFO] 图二已保存：{args.out2}")
+plt.savefig(out2_path, bbox_inches="tight", dpi=150)
+print(f"[INFO] 图二已保存：{out2_path}")
 plt.close()
 
 print("[DONE]")

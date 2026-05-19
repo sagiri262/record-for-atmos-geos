@@ -29,7 +29,7 @@ from wrf_read_data import WRFDataReader
 # =========================================================
 # 1. 参数设置
 # =========================================================
-wrf_path = "/Volumes/Lexar/WRF_Data/WRF_second_try/wrfout_d01_*"
+wrf_path = "../../../WRFV4.6.0/test/em_real/final_d02_run/wrfout_d01_*"
 reader = WRFDataReader(wrf_path)
 
 # 获取排序后的文件列表
@@ -92,11 +92,26 @@ if use_period_precip and len(wrf_files) >= 2:
     rainnc_prev = getvar(ncfile_prev, "RAINNC")
     rain_prev = rainc_prev + rainnc_prev
 
-    rain_plot = to_np(rain_now - rain_prev)
-    rain_plot = np.where(rain_plot < 0, 0, rain_plot)   # 防止少数重启导致负值
+    rain_now_np = to_np(rain_now)
+    rain_prev_np = to_np(rain_prev)
+
+    print("rain_now shape: ", rain_now_np.shape)
+    print("rain_prev shape: ", rain_prev_np.shape)
+
+    if rain_now_np.shape != rain_prev_np.shape:
+        raise ValueError(
+            f"rain grid mismatch: now={rain_now_np.shape}, prev={rain_prev_np.shape}"
+        )
+
+    rain_plot = rain_now_np - rain_prev_np
 else:
     # 直接画累计降水
     rain_plot = to_np(rain_now)
+
+"""
+    rain_plot = to_np(rain_now - rain_prev)
+    rain_plot = np.where(rain_plot < 0, 0, rain_plot)   # 防止少数重启导致负值
+"""
 
 
 # =========================================================
