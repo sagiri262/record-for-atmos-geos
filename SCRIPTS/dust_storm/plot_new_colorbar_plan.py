@@ -89,8 +89,35 @@ def setup_map(ax, extent):
     return ax
 
 
+def read_plot_field(ncfile, var_name):
+    """Return scalar data and optional wind vectors for plotting."""
+    if not isinstance(var_name, str):
+        raise TypeError("var_name must be a string, such as 'slp', 'R', or 'UV'.")
+
+    name = var_name.lower()
+    if name in ('r', 'rain', 'rainfall', 'precip'):
+        data = (
+            to_np(getvar(ncfile, "RAINC"))
+            + to_np(getvar(ncfile, "RAINNC"))
+            + to_np(getvar(ncfile, "RAINSH"))
+        )
+        return data, None, None, 'Rainfall(mm)'
+
+    if name in ('uv', 'wind', 'uv10', 'wind10'):
+        uv = to_np(getvar(ncfile, "uvmet10", units="m s-1"))
+        u = uv[0, :, :]
+        v = uv[1, :, :]
+        data = np.hypot(u, v)
+        return data, u, v, 'Wind Speed(m/s)'
+
+    field = getvar(ncfile, var_name)
+    if name == 'slp':
+        field = smooth2d(field, 3, cenweight=4)
+    return to_np(field), None, None, var_name
+
+
 # 绘制 GIF 动图
-def wrfout_gif(wrf_files, var_name, gif_name, extent, levels=None, plot_type='contourf', title='', frame_dir='frames', duration=0.5):
+def wrfout_gif(wrf_files, var_name, gif_name, extent, levels=None, plot_type='contourf', title='', frame_dir='frames', duration=0.5, vector_step=10):
     os.makedirs(frame_dir, exist_ok=True)
     wrf_files = sorted(wrf_files)
     if not wrf_files:
@@ -106,17 +133,9 @@ def wrfout_gif(wrf_files, var_name, gif_name, extent, levels=None, plot_type='co
         lon = np.array(ncfile['XLONG'])[0,:,:]
         lat = np.array(ncfile['XLAT'])[0,:,:]
 
-        if var_name == 'R':
-            field = (
-                to_np(getvar(ncfile, "RAINC"))
-                + to_np(getvar(ncfile, "RAINNC"))
-                + to_np(getvar(ncfile, "RAINSH"))
-            )
-        else:
-            field = getvar(ncfile, var_name)
-        if var_name == 'slp':
-            field = smooth2d(field, 3, cenweight=4)
-        data = to_np(field)
+        data, u, v, cbar_label = read_plot_field(ncfile, var_name)
+        if data.ndim != 2:
+            raise ValueError(f"{var_name} is {data.ndim}D. wrfout_gif currently expects a 2D field.")
 
         if levels is None:
             vmin = np.floor(np.nanmin(data) / 2) * 2
@@ -130,10 +149,27 @@ def wrfout_gif(wrf_files, var_name, gif_name, extent, levels=None, plot_type='co
         if plot_type == 'contour':
             cs = ax.contour(lon, lat, data, levels=use_levels, colors='r', linewidths=0.4, transform=ccrs.PlateCarree())
             ax.clabel(cs, inline=True, fontsize=8, fmt='%d')
+            if u is not None and v is not None:
+                step = max(1, int(vector_step))
+                ax.quiver(lon[::step, ::step], lat[::step, ::step], u[::step, ::step], v[::step, ::step],
+                          transform=ccrs.PlateCarree(), color='k', scale=500, width=0.002)
+        elif plot_type == 'barbs':
+            cf = ax.contourf(lon, lat, data, levels=use_levels, cmap=cmap, transform=ccrs.PlateCarree(), extend='max')
+            cbar = fig.colorbar(cf, ax=ax, ticks=use_levels[::3], shrink=0.65)
+            cbar.set_label(cbar_label, size=12)
+            if u is None or v is None:
+                raise ValueError("plot_type='barbs' requires a vector variable such as 'UV'.")
+            step = max(1, int(vector_step))
+            ax.barbs(lon[::step, ::step], lat[::step, ::step], u[::step, ::step], v[::step, ::step],
+                     transform=ccrs.PlateCarree(), length=5, linewidth=0.4)
         else:
             cf = ax.contourf(lon, lat, data, levels=use_levels, cmap=cmap, transform=ccrs.PlateCarree(), extend='max')
             cbar = fig.colorbar(cf, ax=ax, ticks=use_levels[::3], shrink=0.65)
-            cbar.set_label(var_name, size=12)
+            cbar.set_label(cbar_label, size=12)
+            if u is not None and v is not None:
+                step = max(1, int(vector_step))
+                ax.quiver(lon[::step, ::step], lat[::step, ::step], u[::step, ::step], v[::step, ::step],
+                          transform=ccrs.PlateCarree(), color='k', scale=500, width=0.002)
 
         ax = setup_map(ax, extent)
         plt.title(title if title else var_name, fontsize=14, pad=20)
